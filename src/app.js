@@ -21,6 +21,8 @@ app.get('/', (req, res) => {
   res.json({ status: 'success', message: 'Welcome to my awsome project REST API', docs: 'https://docs.example.com', author: 'programmer magang' });
 });
 app.use('/api/v1/health', healthRouter);
+const usersRouter = require('./modules/users/users.routes');
+app.use('/api/v1/users', usersRouter);
 app.use(notFound);
 app.use(errorHandler);
 
