@@ -23,6 +23,8 @@ app.get('/', (req, res) => {
 app.use('/api/v1/health', healthRouter);
 const usersRouter = require('./modules/users/users.routes');
 app.use('/api/v1/users', usersRouter);
+const authRouter = require('./modules/auth/auth.routes');
+app.use('/api/v1/auth', authRouter);
 app.use(notFound);
 app.use(errorHandler);
 
