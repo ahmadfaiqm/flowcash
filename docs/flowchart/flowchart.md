@@ -1,731 +1,521 @@
 # Flowchart Sistem Akuntansi UMKM
 
-## Gambaran Umum
+Dokumen flowchart berdasarkan DBML `akuntansi_umkm`.
 
-Aplikasi ini merupakan sistem akuntansi UMKM dengan konsep **double-entry accounting**.
-
-Semua transaksi bisnis seperti:
-
-- Penjualan
-- Pembelian
-- Penerimaan kas/bank
-- Pembayaran kas/bank
-- Pergerakan stok
-- Penyusutan aset
-- Jurnal manual
-
-akan diproses dan diposting ke:
-
-- `journals`
-- `journal_lines`
-
-Kedua tabel tersebut menjadi pusat pencatatan akuntansi dan sumber utama untuk menghasilkan laporan.
-
----
-
-## 1. Flowchart Utama Sistem
+## 1. Flowchart Utama
 
 ```mermaid
 flowchart TD
     A([Start]) --> B[Login]
-    B --> C{Login berhasil?}
-
-    C -- Tidak --> B
-    C -- Ya --> D[Dashboard]
-
-    D --> E{Pilih Modul}
-
-    E --> F[Penjualan]
-    E --> G[Pembelian]
-    E --> H[Kas / Bank]
-    E --> I[Stok]
-    E --> J[Aset Tetap]
-    E --> K[Akuntansi / Jurnal]
-    E --> L[Laporan]
-
-    F --> F1[Input Sales Invoice]
-    F1 --> F2[Input Customer]
-    F2 --> F3[Input Produk]
-    F3 --> F4[Hitung Subtotal + Pajak]
-    F4 --> F5[Post Invoice]
-    F5 --> F6[Update Piutang]
-    F5 --> F7[Update Stok]
-    F5 --> F8[Buat Jurnal Penjualan]
-    F8 --> F9[Debit Piutang / Kas]
-    F9 --> F10[Credit Penjualan]
-    F10 --> F11[Debit HPP]
-    F11 --> F12[Credit Persediaan]
-
-    F --> F13{Invoice sudah dibayar?}
-    F13 -- Ya --> F14[Input Receipt]
-    F14 --> F15[Update Paid Total]
-    F15 --> F16[Buat Jurnal Penerimaan]
-    F16 --> F17[Debit Kas / Bank]
-    F17 --> F18[Credit Piutang]
-
-    G --> G1[Input Purchase Invoice]
-    G1 --> G2[Input Supplier]
-    G2 --> G3[Input Produk]
-    G3 --> G4[Hitung Subtotal + Pajak]
-    G4 --> G5[Post Invoice]
-    G5 --> G6[Update Hutang]
-    G5 --> G7[Update Stok]
-    G5 --> G8[Buat Jurnal Pembelian]
-    G8 --> G9[Debit Persediaan]
-    G9 --> G10[Credit Hutang]
-
-    G --> G11{Pembelian dibayar?}
-    G11 -- Ya --> G12[Input Purchase Payment]
-    G12 --> G13[Update Paid Total]
-    G13 --> G14[Buat Jurnal Pembayaran]
-    G14 --> G15[Debit Hutang]
-    G15 --> G16[Credit Kas / Bank]
-
-    H --> H1[Pilih Kas / Bank]
-    H1 --> H2[Input Transaksi]
-    H2 --> H3[Post Jurnal]
-    H3 --> H4[Update Saldo Kas / Bank]
-
-    I --> I1[Stock Movement]
-    I1 --> I2{Jenis Movement}
-    I2 --> I3[Stock In]
-    I2 --> I4[Stock Out]
-    I2 --> I5[Adjustment]
-    I3 --> I6[Update Stock Qty + Average Cost]
-    I4 --> I6
-    I5 --> I6
-
-    J --> J1[Input Fixed Asset]
-    J1 --> J2[Hitung Penyusutan]
-    J2 --> J3[Generate Depreciation]
-    J3 --> J4[Buat Jurnal Penyusutan]
-    J4 --> J5[Debit Beban Penyusutan]
-    J5 --> J6[Credit Akumulasi Penyusutan]
-
-    K --> K1[Chart of Accounts]
-    K1 --> K2[Create / Edit Journal]
-    K2 --> K3[Input Journal Lines]
-    K3 --> K4{Debit = Credit?}
-    K4 -- Tidak --> K3
-    K4 -- Ya --> K5[Post Journal]
-
-    L --> L1[Ambil Data Journal Lines]
-    L1 --> L2[Generate Laporan]
-    L2 --> L3[Neraca]
-    L2 --> L4[Laba Rugi]
-    L2 --> L5[Arus Kas]
-    L2 --> L6[Piutang]
-    L2 --> L7[Hutang]
-    L2 --> L8[Persediaan]
-
-    F12 --> M[(Journals + Journal Lines)]
-    F18 --> M
-    G10 --> M
-    G16 --> M
-    H4 --> M
-    J6 --> M
-    K5 --> M
-
-    M --> L1
+    B --> C[Input Email & Password]
+    C --> D{User Terdaftar?}
+    D -->|Tidak| E[Register User]
+    E --> F[Create User]
+    F --> G[Register Business]
+    G --> H[Create Business Profile]
+    H --> I[Create Business Member - Owner]
+    I --> J[Generate Default COA]
+    J --> K[Dashboard]
+    D -->|Ya| L[Validasi Password]
+    L --> M{Password Benar?}
+    M -->|Tidak| N[Error]
+    N --> B
+    M -->|Ya| O[Cek Business Membership]
+    O --> P{Punya Business?}
+    P -->|Tidak| G
+    P -->|Ya| Q[Ambil Business + Role]
+    Q --> K
+    K --> R{Pilih Modul}
+    R -->|Penjualan| S[Sales & Receivable]
+    R -->|Pembelian| T[Purchase & Payable]
+    R -->|Stok| U[Inventory]
+    R -->|Kas & Bank| V[Cash & Bank]
+    R -->|Akuntansi| W[Accounting]
+    R -->|Aset| X[Fixed Assets]
+    R -->|Laporan| Y[Reports]
+    S --> K
+    T --> K
+    U --> K
+    V --> K
+    W --> K
+    X --> K
+    Y --> K
 ```
 
----
+## 2. Authentication & Business Onboarding
 
-## 2. Flowchart Sederhana Arsitektur Sistem
+```mermaid
+flowchart TD
+    A([Start]) --> B[Login]
+    B --> C[Email + Password]
+    C --> D{Email Terdaftar?}
+    D -->|Tidak| E[Register User]
+    E --> F[Create User]
+    F --> G[Register Business]
+    D -->|Ya| H[Validate Password]
+    H --> I{Password Valid?}
+    I -->|Tidak| J[Login Error]
+    J --> B
+    I -->|Ya| K[Find Business Membership]
+    K --> L{Membership Exists?}
+    L -->|Tidak| G
+    L -->|Ya| M[Get Business + Role]
+    M --> N[Dashboard]
+    G --> O[Input Business Data]
+    O --> P[Create Business Profile]
+    P --> Q[Create Business Member]
+    Q --> R[Role = Owner]
+    R --> S[Generate Default COA]
+    S --> T[Initial Business Setup]
+    T --> N
+```
+
+## 3. Penjualan
+
+```mermaid
+flowchart TD
+    A([Start]) --> B[Pilih Penjualan]
+    B --> C[Pilih / Input Customer]
+    C --> D[Pilih Product]
+    D --> E[Input Quantity]
+    E --> F[Ambil Selling Price]
+    F --> G[Hitung Subtotal]
+    G --> H[Hitung Discount]
+    H --> I[Hitung Tax]
+    I --> J[Hitung Total]
+    J --> K{Stock Cukup?}
+    K -->|Tidak| L[Stock Tidak Cukup]
+    L --> D
+    K -->|Ya| M[Create Sales Invoice]
+    M --> N[Create Invoice Lines]
+    N --> O[Kurangi Stock]
+    O --> P[Create Stock Movement]
+    P --> Q{Pembayaran?}
+    Q -->|Belum| R[Invoice Posted]
+    Q -->|Sudah| S[Create Receipt]
+    S --> T[Update Paid Amount]
+    T --> U[Update Invoice Status]
+    R --> V[Create Journal]
+    U --> V
+    V --> W[Debit Cash / Bank / AR]
+    W --> X[Credit Sales Revenue]
+    X --> Y[Record COGS]
+    Y --> Z[Update Inventory]
+    Z --> AA([Selesai])
+```
+
+## 4. Pembelian
+
+```mermaid
+flowchart TD
+    A([Start]) --> B[Pilih Pembelian]
+    B --> C[Pilih / Input Supplier]
+    C --> D[Pilih Product]
+    D --> E[Input Quantity]
+    E --> F[Input Purchase Price]
+    F --> G[Hitung Subtotal]
+    G --> H[Hitung Discount]
+    H --> I[Hitung Tax]
+    I --> J[Hitung Total]
+    J --> K[Create Purchase Invoice]
+    K --> L[Create Invoice Lines]
+    L --> M[Tambah Stock]
+    M --> N[Create Stock Movement]
+    N --> O{Pembayaran?}
+    O -->|Belum| P[Invoice Posted]
+    O -->|Sudah| Q[Create Purchase Payment]
+    Q --> R[Update Paid Amount]
+    R --> S[Update Invoice Status]
+    P --> T[Create Journal]
+    S --> T
+    T --> U[Debit Inventory / Expense]
+    U --> V[Credit Cash / Bank / AP]
+    V --> W([Selesai])
+```
+
+## 5. Inventory / Stock
+
+```mermaid
+flowchart TD
+    A([Stock Module]) --> B{Jenis Movement?}
+    B -->|Purchase| C[Stock In]
+    B -->|Sales| D[Stock Out]
+    B -->|Adjustment| E[Stock Adjustment]
+    C --> F[Tambah Quantity]
+    D --> G[Kurangi Quantity]
+    E --> H[Sesuaikan Quantity]
+    F --> I[Create Stock Movement]
+    G --> I
+    H --> I
+    I --> J[Update Product Stock]
+    J --> K{Stock <= Minimum Stock?}
+    K -->|Ya| L[Stock Alert]
+    K -->|Tidak| M[Stock Normal]
+    L --> N([Selesai])
+    M --> N
+```
+
+## 6. Kas & Bank
+
+```mermaid
+flowchart TD
+    A([Kas & Bank]) --> B{Jenis Transaksi?}
+    B -->|Pemasukan| C[Cash In]
+    B -->|Pengeluaran| D[Cash Out]
+    B -->|Transfer| E[Transfer Antar Akun]
+    C --> F[Input Amount]
+    D --> G[Input Amount]
+    E --> H[Pilih Source Account]
+    H --> I[Pilih Destination Account]
+    I --> J[Input Amount]
+    F --> K[Create Journal]
+    G --> K
+    J --> K
+    K --> L[Update Cash / Bank Balance]
+    L --> M[Create Journal Lines]
+    M --> N([Selesai])
+```
+
+## 7. Accounting / Jurnal
+
+```mermaid
+flowchart TD
+    A([Accounting]) --> B{Sumber Transaksi?}
+    B -->|Penjualan| C[Sales Journal]
+    B -->|Pembelian| D[Purchase Journal]
+    B -->|Penerimaan| E[Receipt Journal]
+    B -->|Pembayaran| F[Payment Journal]
+    B -->|Penyusutan| G[Depreciation Journal]
+    B -->|Manual| H[Manual Journal]
+    C --> I[Create Journal]
+    D --> I
+    E --> I
+    F --> I
+    G --> I
+    H --> I
+    I --> J[Create Journal Lines]
+    J --> K{Debit = Credit?}
+    K -->|Tidak| L[Journal Error]
+    L --> M[Edit Journal]
+    M --> J
+    K -->|Ya| N[Post Journal]
+    N --> O([Selesai])
+```
+
+## 8. Piutang / Receivable
+
+```mermaid
+flowchart TD
+    A([Sales Invoice]) --> B{Payment Received?}
+    B -->|Tidak| C[Outstanding Receivable]
+    B -->|Ya| D[Create Receipt]
+    D --> E[Input Payment Amount]
+    E --> F[Select Payment Method]
+    F --> G[Select Cash / Bank Account]
+    G --> H[Update Paid Amount]
+    H --> I{Fully Paid?}
+    I -->|Tidak| J[Partially Paid]
+    I -->|Ya| K[Paid]
+    C --> L([Monitoring AR])
+    J --> L
+    K --> L
+```
+
+## 9. Hutang / Payable
+
+```mermaid
+flowchart TD
+    A([Purchase Invoice]) --> B{Payment Made?}
+    B -->|Tidak| C[Outstanding Payable]
+    B -->|Ya| D[Create Purchase Payment]
+    D --> E[Input Payment Amount]
+    E --> F[Select Payment Method]
+    F --> G[Select Cash / Bank Account]
+    G --> H[Update Paid Amount]
+    H --> I{Fully Paid?}
+    I -->|Tidak| J[Partially Paid]
+    I -->|Ya| K[Paid]
+    C --> L([Monitoring AP])
+    J --> L
+    K --> L
+```
+
+## 10. Fixed Asset & Depreciation
+
+```mermaid
+flowchart TD
+    A([Fixed Asset]) --> B[Input Asset]
+    B --> C[Asset Name]
+    C --> D[Acquisition Cost]
+    D --> E[Acquisition Date]
+    E --> F[Useful Life]
+    F --> G[Residual Value]
+    G --> H[Create Fixed Asset]
+    H --> I[Calculate Monthly Depreciation]
+    I --> J[Period End]
+    J --> K[Create Asset Depreciation]
+    K --> L[Update Accumulated Depreciation]
+    L --> M[Update Book Value]
+    M --> N[Create Depreciation Journal]
+    N --> O[Debit Depreciation Expense]
+    O --> P[Credit Accumulated Depreciation]
+    P --> Q([Selesai])
+```
+
+Rumus penyusutan garis lurus:
+
+```text
+Depreciation = (Acquisition Cost - Residual Value) / Useful Life
+```
+
+## 11. Chart of Accounts
+
+```mermaid
+flowchart TD
+    A([Chart of Accounts]) --> B[Create Account]
+    B --> C[Input Code]
+    C --> D[Input Name]
+    D --> E[Select Account Type]
+    E --> F{Parent Account?}
+    F -->|Ya| G[Select Parent Account]
+    F -->|Tidak| H[Root Account]
+    G --> I[Save Account]
+    H --> I
+    I --> J[Account Active]
+    J --> K([Selesai])
+```
+
+## 12. Tax
+
+```mermaid
+flowchart TD
+    A([Tax Management]) --> B[Create Tax]
+    B --> C[Input Tax Code]
+    C --> D[Input Tax Name]
+    D --> E[Input Tax Rate]
+    E --> F[Set Active]
+    F --> G[Save Tax]
+    G --> H([Selesai])
+```
+
+## 13. Dashboard
+
+```mermaid
+flowchart TD
+    A([Dashboard]) --> B[Select Period]
+    B --> C[Load Business Data]
+    C --> D[Calculate Omzet]
+    C --> E[Calculate Revenue]
+    C --> F[Calculate Expense]
+    C --> G[Calculate Profit / Loss]
+    C --> H[Calculate Cash & Bank]
+    C --> I[Calculate Receivable]
+    C --> J[Calculate Payable]
+    C --> K[Calculate Stock]
+    D --> L[Display Dashboard]
+    E --> L
+    F --> L
+    G --> L
+    H --> L
+    I --> L
+    J --> L
+    K --> L
+    L --> M([Selesai])
+```
+
+## 14. Reports
+
+```mermaid
+flowchart TD
+    A([Reports]) --> B{Pilih Laporan}
+    B -->|Laba Rugi| C[Profit & Loss]
+    B -->|Neraca| D[Balance Sheet]
+    B -->|Arus Kas| E[Cash Flow]
+    B -->|Penjualan| F[Sales Report]
+    B -->|Pembelian| G[Purchase Report]
+    B -->|Stok| H[Inventory Report]
+    B -->|Piutang| I[AR Report]
+    B -->|Hutang| J[AP Report]
+    B -->|Aset| K[Fixed Asset Report]
+    C --> L[Filter Period]
+    D --> L
+    E --> L
+    F --> L
+    G --> L
+    H --> L
+    I --> L
+    J --> L
+    K --> L
+    L --> M[Query Business Data]
+    M --> N[Generate Report]
+    N --> O([Selesai])
+```
+
+## 15. Relasi Besar Antar Modul
 
 ```mermaid
 flowchart LR
-    A[User] --> B[Dashboard]
-
-    B --> C[Penjualan]
-    B --> D[Pembelian]
-    B --> E[Kas / Bank]
-    B --> F[Stok]
-    B --> G[Aset]
-    B --> H[Akuntansi]
-    B --> I[Laporan]
-
-    C --> J[Transaksi]
-    D --> J
-    E --> J
+    A[Users] --> B[Business Profiles]
+    B --> C[Business Members]
+    B --> D[Chart of Accounts]
+    B --> E[Taxes]
+    B --> F[Products]
+    B --> G[Customers]
+    B --> H[Suppliers]
+    B --> I[Cash & Bank Accounts]
+    G --> J[Sales Invoices]
     F --> J
-    G --> J
-    H --> J
-
-    J --> K[Posting]
-    K --> L[(Journals)]
-    L --> M[(Journal Lines)]
-
-    M --> I
-```
-
-### Konsep utama
-
-```text
-Transaksi Bisnis
-       │
-       ▼
-   Diproses
-       │
-       ▼
-    Posting
-       │
-       ▼
-  ┌───────────────┐
-  │   Journals    │
-  │       +       │
-  │ Journal Lines │
-  └───────┬───────┘
-          │
-          ▼
-       Laporan
-```
-
----
-
-## 3. Flowchart Penjualan
-
-```mermaid
-flowchart TD
-    A([Mulai]) --> B[Pilih Customer]
-    B --> C[Pilih Produk]
-    C --> D[Input Qty & Harga]
-    D --> E[Hitung Subtotal]
-    E --> F[Hitung Pajak]
-    F --> G[Hitung Grand Total]
-    G --> H[Simpan Sales Invoice]
-
-    H --> I{Posting?}
-
-    I -- Tidak --> J[Status Draft]
-    J --> Z([Selesai])
-
-    I -- Ya --> K[Post Sales Invoice]
-
-    K --> L[Update Stock]
-    L --> M[Hitung HPP]
-    M --> N[Update Piutang]
-
-    N --> O[Buat Journal]
-    O --> P[Debit Piutang / Kas]
-    P --> Q[Credit Penjualan]
-    Q --> R[Debit HPP]
-    R --> S[Credit Persediaan]
-
-    S --> T{Pembayaran langsung?}
-
-    T -- Ya --> U[Create Receipt]
-    U --> V[Update Paid Total]
-    V --> W[Status Paid]
-
-    T -- Tidak --> X[Status Unpaid]
-
-    X --> Z
-    W --> Z
-```
-
-### Tabel yang terlibat
-
-- `customers`
-- `sales_invoices`
-- `sales_invoice_lines`
-- `products`
-- `stock_movements`
-- `receipts`
-- `cash_bank_accounts`
-- `journals`
-- `journal_lines`
-- `chart_of_accounts`
-- `taxes`
-
----
-
-## 4. Flowchart Pembelian
-
-```mermaid
-flowchart TD
-    A([Mulai]) --> B[Pilih Supplier]
-    B --> C[Pilih Produk]
-    C --> D[Input Qty & Harga]
-    D --> E[Hitung Subtotal]
-    E --> F[Hitung Pajak]
-    F --> G[Hitung Grand Total]
-    G --> H[Simpan Purchase Invoice]
-
-    H --> I{Posting?}
-
-    I -- Tidak --> J[Status Draft]
-    J --> Z([Selesai])
-
-    I -- Ya --> K[Post Purchase Invoice]
-
-    K --> L[Update Stock]
-    L --> M[Update Average Cost]
-    M --> N[Update Hutang]
-
-    N --> O[Buat Journal]
-    O --> P[Debit Persediaan]
-    P --> Q[Credit Hutang]
-
-    Q --> R{Pembayaran?}
-
-    R -- Ya --> S[Create Purchase Payment]
-    S --> T[Update Paid Total]
-    T --> U[Buat Journal Pembayaran]
-    U --> V[Debit Hutang]
-    V --> W[Credit Kas / Bank]
-
-    R -- Tidak --> X[Status Unpaid]
-
-    W --> Z([Selesai])
-    X --> Z
-```
-
-### Tabel yang terlibat
-
-- `suppliers`
-- `purchase_invoices`
-- `purchase_invoice_lines`
-- `products`
-- `stock_movements`
-- `purchase_payments`
-- `cash_bank_accounts`
-- `journals`
-- `journal_lines`
-- `chart_of_accounts`
-- `taxes`
-
----
-
-## 5. Flowchart Stok
-
-Sistem menggunakan metode **Average Cost** untuk menghitung HPP.
-
-```mermaid
-flowchart TD
-    A([Transaksi Stok]) --> B{Jenis Movement}
-
-    B -->|Purchase| C[Stock In]
-    B -->|Sales| D[Stock Out]
-    B -->|Adjustment| E[Adjustment]
-
-    C --> F[Tambah Stock Qty]
-    F --> G[Hitung Average Cost]
-    G --> H[Update Product]
-
-    D --> I[Kurangi Stock Qty]
-    I --> J[Ambil Avg Cost]
-    J --> K[Hitung HPP]
-    K --> H
-
-    E --> L[Sesuaikan Stock Qty]
-    L --> H
-
-    H --> M[(Products)]
-    H --> N[(Stock Movements)]
-
-    K --> O[Buat Jurnal HPP]
-```
-
-### Tabel yang terlibat
-
-- `products`
-- `stock_movements`
-- `sales_invoice_lines`
-- `purchase_invoice_lines`
-- `journals`
-- `journal_lines`
-
----
-
-## 6. Flowchart Aset Tetap
-
-```mermaid
-flowchart TD
-    A([Mulai]) --> B[Input Fixed Asset]
-    B --> C[Input Purchase Cost]
-    C --> D[Input Useful Life]
-    D --> E[Input Salvage Value]
-
-    E --> F[Simpan Fixed Asset]
-    F --> G[Hitung Penyusutan Bulanan]
-
-    G --> H{Sudah ada penyusutan periode ini?}
-
-    H -- Ya --> I[Skip]
-    I --> Z([Selesai])
-
-    H -- Tidak --> J[Create Asset Depreciation]
-    J --> K[Buat Journal]
-    K --> L[Debit Beban Penyusutan]
-    L --> M[Credit Akumulasi Penyusutan]
-    M --> Z
-```
-
-### Rumus penyusutan
-
-```text
-Penyusutan per bulan =
-(Purchase Cost - Salvage Value)
-÷ Useful Life dalam bulan
-```
-
-### Tabel yang terlibat
-
-- `fixed_assets`
-- `asset_depreciations`
-- `journals`
-- `journal_lines`
-- `chart_of_accounts`
-
----
-
-## 7. Flowchart Akuntansi / Double-Entry
-
-Ini merupakan inti dari sistem.
-
-```mermaid
-flowchart TD
-    A[Transaksi Bisnis] --> B{Sumber Transaksi}
-
-    B --> C[Penjualan]
-    B --> D[Pembelian]
-    B --> E[Penerimaan]
-    B --> F[Pembayaran]
-    B --> G[Stok]
-    B --> H[Penyusutan]
-    B --> I[Jurnal Manual]
-
-    C --> J[Generate Journal]
-    D --> J
-    E --> J
-    F --> J
-    G --> J
-    H --> J
-    I --> J
-
-    J --> K[Journal Header]
-    K --> L[Journal Lines]
-
-    L --> M{Debit = Credit?}
-
-    M -- Tidak --> N[Validation Error]
+    J --> K[Receipts]
+    J --> L[Stock Movements]
+    J --> M[Journals]
+    H --> N[Purchase Invoices]
+    F --> N
+    N --> O[Purchase Payments]
     N --> L
-
-    M -- Ya --> O[Post Journal]
-
-    O --> P[(Journals)]
-    O --> Q[(Journal Lines)]
-
-    P --> R[Laporan]
-    Q --> R
-
-    R --> S[Neraca]
-    R --> T[Laba Rugi]
-    R --> U[Arus Kas]
-    R --> V[General Ledger]
+    N --> M
+    I --> K
+    I --> O
+    M --> P[Journal Lines]
+    D --> P
+    B --> Q[Fixed Assets]
+    Q --> R[Asset Depreciations]
+    R --> M
+    J --> S[Reports]
+    N --> S
+    L --> S
+    K --> S
+    O --> S
+    M --> S
+    Q --> S
 ```
 
----
-
-## 8. Flowchart Penerimaan Piutang
+## 16. Multi-Tenant / Business Isolation
 
 ```mermaid
 flowchart TD
-    A([Mulai]) --> B[Pilih Sales Invoice]
-    B --> C[Input Amount]
-    C --> D[Pilih Payment Method]
-    D --> E[Pilih Cash / Bank Account]
-
-    E --> F[Simpan Receipt]
-    F --> G[Update Paid Total]
-
-    G --> H{Paid Total >= Grand Total?}
-
-    H -- Ya --> I[Status Paid]
-    H -- Tidak --> J[Status Partial]
-
-    I --> K[Buat Journal]
-    J --> K
-
-    K --> L[Debit Kas / Bank]
-    L --> M[Credit Piutang]
-    M --> N[(Journals + Journal Lines)]
-
-    N --> Z([Selesai])
-```
-
----
-
-## 9. Flowchart Pembayaran Hutang
-
-```mermaid
-flowchart TD
-    A([Mulai]) --> B[Pilih Purchase Invoice]
-    B --> C[Input Amount]
-    C --> D[Pilih Payment Method]
-    D --> E[Pilih Cash / Bank Account]
-
-    E --> F[Simpan Purchase Payment]
-    F --> G[Update Paid Total]
-
-    G --> H{Paid Total >= Grand Total?}
-
-    H -- Ya --> I[Status Paid]
-    H -- Tidak --> J[Status Partial]
-
-    I --> K[Buat Journal]
-    J --> K
-
-    K --> L[Debit Hutang]
-    L --> M[Credit Kas / Bank]
-    M --> N[(Journals + Journal Lines)]
-
-    N --> Z([Selesai])
-```
-
----
-
-## 10. Flowchart Jurnal Manual
-
-```mermaid
-flowchart TD
-    A([Mulai]) --> B[Pilih Chart of Accounts]
-    B --> C[Create Journal]
-    C --> D[Input Journal Lines]
-
-    D --> E[Input Debit / Credit]
-    E --> F{Debit = Credit?}
-
-    F -- Tidak --> G[Validation Error]
-    G --> D
-
-    F -- Ya --> H[Simpan Journal sebagai Draft]
-    H --> I{Post Journal?}
-
-    I -- Tidak --> J[Tetap Draft]
-    I -- Ya --> K[Post Journal]
-
-    K --> L[Status Posted]
-    L --> M[(Journals + Journal Lines)]
-
-    J --> Z([Selesai])
-    M --> Z
-```
-
----
-
-## 11. Flowchart Laporan
-
-```mermaid
-flowchart TD
-    A([User Membuka Laporan]) --> B[Pilih Periode]
-    B --> C[Ambil Journals]
-    C --> D[Ambil Journal Lines]
-    D --> E[Filter berdasarkan COA dan Periode]
-
-    E --> F{Jenis Laporan}
-
-    F --> G[Neraca]
-    F --> H[Laba Rugi]
-    F --> I[Arus Kas]
-    F --> J[General Ledger]
-    F --> K[Laporan Piutang]
-    F --> L[Laporan Hutang]
-    F --> M[Laporan Persediaan]
-
-    G --> N[Tampilkan Laporan]
+    A[Authenticated User] --> B[Get Active Business]
+    B --> C[Get business_id]
+    C --> D[Business-scoped Query]
+    D --> E[Products]
+    D --> F[Customers]
+    D --> G[Suppliers]
+    D --> H[Sales]
+    D --> I[Purchases]
+    D --> J[Stock]
+    D --> K[Cash & Bank]
+    D --> L[Accounting]
+    D --> M[Assets]
+    E --> N[Response]
+    F --> N
+    G --> N
     H --> N
     I --> N
     J --> N
     K --> N
     L --> N
     M --> N
-
-    N --> Z([Selesai])
 ```
 
----
-
-# Arsitektur Utama Sistem
+Aturan utama:
 
 ```text
-                         ┌───────────────┐
-                         │     USER      │
-                         └───────┬───────┘
-                                 │
-                         ┌───────▼───────┐
-                         │   DASHBOARD   │
-                         └───────┬───────┘
-                                 │
-          ┌──────────────────────┼──────────────────────┐
-          │          │           │          │            │
-          ▼          ▼           ▼          ▼            ▼
-     Penjualan   Pembelian   Kas/Bank     Stok       Aset Tetap
-          │          │           │          │            │
-          └──────────┴───────────┴──────────┴────────────┘
-                                 │
-                                 ▼
-                         ┌───────────────┐
-                         │    POSTING    │
-                         └───────┬───────┘
-                                 │
-                  ┌──────────────▼──────────────┐
-                  │          JOURNALS            │
-                  │              +               │
-                  │        JOURNAL_LINES         │
-                  └──────────────┬──────────────┘
-                                 │
-                         ┌───────▼───────┐
-                         │    LAPORAN    │
-                         └───────┬───────┘
-                                 │
-             ┌───────────────────┼───────────────────┐
-             │                   │                   │
-             ▼                   ▼                   ▼
-          Neraca             Laba Rugi           Arus Kas
+User
+  ↓
+Business Membership
+  ↓
+business_id
+  ↓
+Business-scoped Query
+  ↓
+Business Data
 ```
 
----
+## 17. Gambaran Arsitektur Keseluruhan
 
-# Modul dan Tabel Utama
+```mermaid
+flowchart TB
+    A[User] --> B[Authentication]
+    B --> C[Business & Role]
+    C --> D[Dashboard]
+    D --> E[Sales]
+    D --> F[Purchase]
+    D --> G[Inventory]
+    D --> H[Cash & Bank]
+    D --> I[Accounting]
+    D --> J[Fixed Asset]
+    D --> K[Reports]
+    E --> L[Customers]
+    E --> M[Sales Invoice]
+    E --> N[Receipts]
+    F --> O[Suppliers]
+    F --> P[Purchase Invoice]
+    F --> Q[Purchase Payments]
+    M --> G
+    P --> G
+    M --> I
+    N --> I
+    P --> I
+    Q --> I
+    H --> I
+    J --> I
+    I --> R[Journal]
+    R --> S[Journal Lines]
+    S --> T[Chart of Accounts]
+    G --> U[Stock Movements]
+    U --> V[Products]
+    I --> K
+    G --> K
+    E --> K
+    F --> K
+    H --> K
+    J --> K
+```
 
-| Modul | Tabel Utama |
+## 18. Core Business Flow
+
+```text
+REGISTER / LOGIN
+       ↓
+BUSINESS
+       ↓
+DASHBOARD
+       ↓
+┌──────────────┬──────────────┬──────────────┐
+│   PENJUALAN  │   PEMBELIAN  │     STOK     │
+└──────┬───────┴──────┬───────┴──────┬───────┘
+       ↓              ↓              ↓
+   RECEIPT         PAYMENT       MOVEMENT
+       │              │              │
+       └──────────────┼──────────────┘
+                      ↓
+                  ACCOUNTING
+                      ↓
+              JOURNAL & LINES
+                      ↓
+                   REPORTS
+                      ↓
+        ┌─────────────┼─────────────┐
+        ↓             ↓             ↓
+     LABA RUGI      NERACA       ARUS KAS
+```
+
+## 19. Ringkasan Modul
+
+| Modul | Tabel |
 |---|---|
-| User | `users` |
-| Profil Bisnis | `business_profiles` |
-| Akun | `chart_of_accounts` |
-| Pajak | `taxes` |
-| Jurnal | `journals`, `journal_lines` |
-| Kas / Bank | `cash_bank_accounts` |
-| Produk | `products` |
-| Stok | `stock_movements` |
+| Authentication | `users` |
+| Business | `business_profiles`, `business_members` |
+| COA | `chart_of_accounts` |
+| Tax | `taxes` |
+| Accounting | `journals`, `journal_lines` |
+| Cash & Bank | `cash_bank_accounts` |
+| Product | `products` |
+| Inventory | `stock_movements` |
 | Customer | `customers` |
-| Penjualan | `sales_invoices`, `sales_invoice_lines` |
-| Penerimaan | `receipts` |
+| Sales | `sales_invoices`, `sales_invoice_lines` |
+| Receivable | `receipts` |
 | Supplier | `suppliers` |
-| Pembelian | `purchase_invoices`, `purchase_invoice_lines` |
-| Pembayaran | `purchase_payments` |
-| Aset | `fixed_assets` |
-| Penyusutan | `asset_depreciations` |
-
----
-
-# Alur Data Utama
-
-## Penjualan
-
-```text
-Customer
-   ↓
-Sales Invoice
-   ↓
-Sales Invoice Lines
-   ↓
-Post
-   ├──→ Stock Movement (OUT)
-   ├──→ Hitung HPP
-   ├──→ Update Piutang
-   └──→ Journal
-            ├── Debit Piutang / Kas
-            ├── Credit Penjualan
-            ├── Debit HPP
-            └── Credit Persediaan
-```
-
-## Pembelian
-
-```text
-Supplier
-   ↓
-Purchase Invoice
-   ↓
-Purchase Invoice Lines
-   ↓
-Post
-   ├──→ Stock Movement (IN)
-   ├──→ Update Average Cost
-   ├──→ Update Hutang
-   └──→ Journal
-            ├── Debit Persediaan
-            └── Credit Hutang
-```
-
-## Pembayaran / Penerimaan
-
-```text
-Receipt / Purchase Payment
-          ↓
-    Update Paid Total
-          ↓
-       Journal
-          ↓
-   Kas / Bank berubah
-```
-
-## Penyusutan
-
-```text
-Fixed Asset
-     ↓
-Hitung Depresiasi
-     ↓
-Asset Depreciation
-     ↓
-Journal
-     ├── Debit Beban Penyusutan
-     └── Credit Akumulasi Penyusutan
-```
-
----
-
-# Prinsip Utama Sistem
-
-1. **Semua transaksi keuangan harus menghasilkan jurnal.**
-2. Setiap jurnal harus memiliki minimal satu debit dan satu credit.
-3. Total debit harus sama dengan total credit sebelum jurnal dapat diposting.
-4. `journals` menyimpan informasi header jurnal.
-5. `journal_lines` menyimpan detail akun debit dan credit.
-6. Modul penjualan, pembelian, kas/bank, stok, dan aset terintegrasi dengan jurnal.
-7. Laporan akuntansi mengambil data dari jurnal yang sudah berstatus `posted`.
-8. Stok menggunakan metode **average cost**.
-9. Invoice dapat memiliki status `draft`, `unpaid`, `partial`, `paid`, atau `void`.
-10. Jurnal dapat memiliki status `draft`, `posted`, atau `void`.
-
----
-
-# Ringkasan Arsitektur
-
-```text
-                    BUSINESS TRANSACTION
-                            │
-          ┌─────────────────┼─────────────────┐
-          │                 │                 │
-       Penjualan         Pembelian        Kas/Bank
-          │                 │                 │
-          ├─────────────────┼─────────────────┤
-          │                 │                 │
-          ▼                 ▼                 ▼
-        Stok             Hutang             Kas
-          │                 │                 │
-          └─────────────────┼─────────────────┘
-                            │
-                            ▼
-                       ACCOUNTING
-                            │
-                            ▼
-                    ┌───────────────┐
-                    │    JOURNAL    │
-                    │      +        │
-                    │ JOURNAL LINES │
-                    └───────┬───────┘
-                            │
-                            ▼
-                         REPORTS
-                            │
-             ┌──────────────┼──────────────┐
-             ▼              ▼              ▼
-           Neraca       Laba Rugi       Arus Kas
-```
-
-**Kesimpulan:** `journals` dan `journal_lines` merupakan **central accounting engine** dari sistem. Modul lain menghasilkan transaksi, sedangkan jurnal menjadi sumber pencatatan double-entry dan laporan akuntansi.
+| Purchase | `purchase_invoices`, `purchase_invoice_lines` |
+| Payable | `purchase_payments` |
+| Fixed Asset | `fixed_assets`, `asset_depreciations` |
+| Reports | Data dari seluruh modul |
