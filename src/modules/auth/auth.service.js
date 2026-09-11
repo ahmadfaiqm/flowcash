@@ -10,14 +10,14 @@ function sign(user) {
 async function register(body) {
   const exists = await repo.findByEmail(body.email);
   if (exists) throw new ApiError(409, 'Email already exists');
-  const password = await bcrypt.hash(body.password, 10);
-  const user = await repo.create({ name: body.name, email: body.email, password });
+  const passwordHash = await bcrypt.hash(body.password, 10);
+  const user = await repo.create({ name: body.name, email: body.email, passwordHash });
   return { user, token: sign(user) };
 }
 async function login(body) {
   const user = await repo.findByEmail(body.email);
   if (!user) throw new ApiError(401, 'Invalid credentials');
-  const ok = await bcrypt.compare(body.password, user.password);
+  const ok = await bcrypt.compare(body.password, user.passwordHash);
   if (!ok) throw new ApiError(401, 'Invalid credentials');
   return { user: { id: user.id, name: user.name, email: user.email }, token: sign(user) };
 }

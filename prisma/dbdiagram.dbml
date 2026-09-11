@@ -1,0 +1,322 @@
+Project akuntansi_umkm {
+  database_type: 'PostgreSQL'
+  Note: 'ERD Aplikasi Akuntansi UMKM - Double-Entry Standar. Semua modul (penjualan, pembelian, kas, stok, aset) posting ke journals + journal_lines.'
+}
+
+// ========== ENUMS ==========
+Enum account_type {
+  Asset
+  Liability
+  Equity
+  Revenue
+  Expense
+}
+
+Enum journal_status {
+  draft
+  posted
+  void
+}
+
+Enum invoice_status {
+  draft
+  unpaid
+  partial
+  paid
+  void
+}
+
+Enum payment_method {
+  cash
+  transfer
+  qris
+  giro
+  other
+}
+
+// ========== INTI & MASTER ==========
+Table users {
+  id uuid [pk, default: `gen_random_uuid()`]
+  name varchar [not null]
+  email varchar [unique, not null]
+  password_hash varchar [not null]
+  role varchar [default: 'admin', note: 'admin, kasir, akuntan']
+  created_at timestamp [default: `now()`]
+}
+
+Table business_profiles {
+  id uuid [pk, default: `gen_random_uuid()`]
+  user_id uuid [ref: > users.id]
+  business_name varchar [not null]
+  address text
+  phone varchar
+  tax_id varchar [note: 'NPWP']
+  base_currency varchar [default: 'IDR']
+  created_at timestamp [default: `now()`]
+}
+
+Table chart_of_accounts {
+  id uuid [pk, default: `gen_random_uuid()`]
+  code varchar [unique, not null, note: 'Cth: 1010 Kas, 4010 Penjualan']
+  name varchar [not null]
+  type account_type [not null]
+  parent_id uuid [ref: > chart_of_accounts.id, note: 'Untuk hierarki induk-anak']
+  is_cash_bank bool [default: false, note: 'true jika akun kas/bank']
+  is_active bool [default: true]
+  created_at timestamp [default: `now()`]
+
+  Indexes {
+    code [unique]
+    type
+  }
+}
+
+Table taxes {
+  id uuid [pk, default: `gen_random_uuid()`]
+  code varchar [unique, not null, note: 'Cth: PPN11, PPh21']
+  name varchar [not null]
+  rate decimal(5,2) [not null, default: 0, note: 'Persen, cth: 11.00']
+  coa_id uuid [ref: > chart_of_accounts.id, note: 'Akun penampung pajak']
+  is_active bool [default: true]
+}
+
+// ========== JURNAL (INTI DOUBLE-ENTRY) ==========
+Table journals {
+  id uuid [pk, default: `gen_random_uuid()`]
+  journal_no varchar [unique, not null, note: 'Cth: JU-2026-0001']
+  date date [not null]
+  description text
+  reference_type varchar [note: 'sales_invoice, purchase_invoice, receipt, payment, stock, depreciation, manual']
+  reference_id uuid [note: 'ID dokumen sumber']
+  status journal_status [default: 'draft']
+  created_by uuid [ref: > users.id]
+  created_at timestamp [default: `now()`]
+
+  Indexes {
+    journal_no [unique]
+    date
+    (reference_type, reference_id)
+  }
+}
+
+Table journal_lines {
+  id uuid [pk, default: `gen_random_uuid()`]
+  journal_id uuid [not null, ref: > journals.id]
+  coa_id uuid [not null, ref: > chart_of_accounts.id]
+  debit decimal(15,2) [default: 0]
+  credit decimal(15,2) [default: 0]
+  memo varchar
+
+  Indexes {
+    journal_id
+    coa_id
+  }
+}
+
+// ========== KAS / BANK ==========
+Table cash_bank_accounts {
+  id uuid [pk, default: `gen_random_uuid()`]
+  coa_id uuid [unique, ref: - chart_of_accounts.id, note: '1 akun kas = 1 CoA']
+  bank_name varchar [not null, note: 'Kas Tunai, BCA, QRIS, dll']
+  account_number varchar
+  opening_balance decimal(15,2) [default: 0]
+  is_active bool [default: true]
+}
+
+// ========== PRODUK & STOK (Average) ==========
+Table products {
+  id uuid [pk, default: `gen_random_uuid()`]
+  sku varchar [unique, not null]
+  name varchar [not null]
+  unit varchar [default: 'pcs']
+  purchase_price decimal(15,2) [default: 0]
+  sell_price decimal(15,2) [default: 0]
+  avg_cost decimal(15,2) [default: 0, note: 'HPP rata-rata, update otomatis']
+  stock_qty decimal(12,2) [default: 0]
+  coa_inventory_id uuid [ref: > chart_of_accounts.id, note: 'Akun persediaan']
+  coa_sales_id uuid [ref: > chart_of_accounts.id, note: 'Akun penjualan']
+  coa_cogs_id uuid [ref: > chart_of_accounts.id, note: 'Akun HPP']
+  is_active bool [default: true]
+}
+
+Table stock_movements {
+  id uuid [pk, default: `gen_random_uuid()`]
+  product_id uuid [not null, ref: > products.id]
+  date date [not null]
+  type varchar [not null, note: 'in (beli), out (jual), adjustment']
+  qty decimal(12,2) [not null]
+  unit_cost decimal(15,2) [default: 0]
+  reference_type varchar [note: 'purchase_invoice, sales_invoice, adjustment']
+  reference_id uuid
+  created_at timestamp [default: `now()`]
+
+  Indexes {
+    product_id
+    date
+  }
+}
+
+// ========== AR: PELANGGAN & PENJUALAN ==========
+Table customers {
+  id uuid [pk, default: `gen_random_uuid()`]
+  code varchar [unique, not null]
+  name varchar [not null]
+  phone varchar
+  address text
+  receivable_coa_id uuid [ref: > chart_of_accounts.id, note: 'Opsional: sub-ledger per customer, default pakai Piutang Usaha']
+  created_at timestamp [default: `now()`]
+}
+
+Table sales_invoices {
+  id uuid [pk, default: `gen_random_uuid()`]
+  invoice_no varchar [unique, not null]
+  customer_id uuid [not null, ref: > customers.id]
+  date date [not null]
+  due_date date
+  tax_id uuid [ref: > taxes.id]
+  tax_amount decimal(15,2) [default: 0]
+  subtotal decimal(15,2) [default: 0]
+  grand_total decimal(15,2) [not null]
+  paid_total decimal(15,2) [default: 0]
+  status invoice_status [default: 'unpaid']
+  journal_id uuid [ref: > journals.id, note: 'Jurnal otomatis saat posted']
+  cash_bank_id uuid [ref: > cash_bank_accounts.id, note: 'Diisi jika langsung lunas tunai']
+  created_at timestamp [default: `now()`]
+}
+
+Table sales_invoice_lines {
+  id uuid [pk, default: `gen_random_uuid()`]
+  sales_invoice_id uuid [not null, ref: > sales_invoices.id]
+  product_id uuid [ref: > products.id]
+  description varchar [not null]
+  qty decimal(12,2) [not null]
+  price decimal(15,2) [not null]
+  line_total decimal(15,2) [not null]
+}
+
+Table receipts {
+  id uuid [pk, default: `gen_random_uuid()`]
+  receipt_no varchar [unique, not null]
+  sales_invoice_id uuid [not null, ref: > sales_invoices.id]
+  date date [not null]
+  amount decimal(15,2) [not null]
+  method payment_method [default: 'transfer']
+  cash_bank_id uuid [not null, ref: > cash_bank_accounts.id]
+  journal_id uuid [ref: > journals.id]
+  created_at timestamp [default: `now()`]
+}
+
+// ========== AP: SUPPLIER & PEMBELIAN ==========
+Table suppliers {
+  id uuid [pk, default: `gen_random_uuid()`]
+  code varchar [unique, not null]
+  name varchar [not null]
+  phone varchar
+  address text
+  payable_coa_id uuid [ref: > chart_of_accounts.id, note: 'Opsional sub-ledger per supplier']
+  created_at timestamp [default: `now()`]
+}
+
+Table purchase_invoices {
+  id uuid [pk, default: `gen_random_uuid()`]
+  invoice_no varchar [unique, not null]
+  supplier_id uuid [not null, ref: > suppliers.id]
+  date date [not null]
+  due_date date
+  tax_id uuid [ref: > taxes.id]
+  tax_amount decimal(15,2) [default: 0]
+  subtotal decimal(15,2) [default: 0]
+  grand_total decimal(15,2) [not null]
+  paid_total decimal(15,2) [default: 0]
+  status invoice_status [default: 'unpaid']
+  journal_id uuid [ref: > journals.id]
+  created_at timestamp [default: `now()`]
+}
+
+Table purchase_invoice_lines {
+  id uuid [pk, default: `gen_random_uuid()`]
+  purchase_invoice_id uuid [not null, ref: > purchase_invoices.id]
+  product_id uuid [ref: > products.id]
+  description varchar [not null]
+  qty decimal(12,2) [not null]
+  price decimal(15,2) [not null]
+  line_total decimal(15,2) [not null]
+}
+
+Table purchase_payments {
+  id uuid [pk, default: `gen_random_uuid()`]
+  payment_no varchar [unique, not null]
+  purchase_invoice_id uuid [not null, ref: > purchase_invoices.id]
+  date date [not null]
+  amount decimal(15,2) [not null]
+  method payment_method [default: 'transfer']
+  cash_bank_id uuid [not null, ref: > cash_bank_accounts.id]
+  journal_id uuid [ref: > journals.id]
+  created_at timestamp [default: `now()`]
+}
+
+// ========== ASET TETAP ==========
+Table fixed_assets {
+  id uuid [pk, default: `gen_random_uuid()`]
+  code varchar [unique, not null]
+  name varchar [not null]
+  purchase_date date [not null]
+  purchase_cost decimal(15,2) [not null]
+  useful_life_months int [not null, note: 'Masa manfaat bulan, cth: 48']
+  salvage_value decimal(15,2) [default: 0, note: 'Nilai sisa']
+  coa_asset_id uuid [ref: > chart_of_accounts.id, note: 'Akun aset tetap']
+  coa_depreciation_id uuid [ref: > chart_of_accounts.id, note: 'Akun beban penyusutan']
+  coa_accumulated_id uuid [ref: > chart_of_accounts.id, note: 'Akun akumulasi penyusutan']
+  is_active bool [default: true]
+}
+
+Table asset_depreciations {
+  id uuid [pk, default: `gen_random_uuid()`]
+  fixed_asset_id uuid [not null, ref: > fixed_assets.id]
+  period date [not null, note: 'Periode penyusutan YYYY-MM-01']
+  amount decimal(15,2) [not null, note: '(cost - salvage) / useful_life']
+  journal_id uuid [ref: > journals.id]
+  created_at timestamp [default: `now()`]
+
+  Indexes {
+    (fixed_asset_id, period) [unique]
+  }
+}
+
+// ========== GROUPING UNTUK VISUAL ==========
+TableGroup inti_akuntansi {
+  users
+  business_profiles
+  chart_of_accounts
+  journals
+  journal_lines
+  taxes
+}
+
+TableGroup kas_bank {
+  cash_bank_accounts
+}
+
+TableGroup penjualan_ar {
+  customers
+  sales_invoices
+  sales_invoice_lines
+  receipts
+}
+
+TableGroup pembelian_ap {
+  suppliers
+  purchase_invoices
+  purchase_invoice_lines
+  purchase_payments
+}
+
+TableGroup stok {
+  products
+  stock_movements
+}
+
+TableGroup aset {
+  fixed_assets
+  asset_depreciations
+}

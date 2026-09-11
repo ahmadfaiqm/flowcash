@@ -1,8 +1,8 @@
 jest.mock('../src/modules/users/users.repository', () => ({
-  findMany: jest.fn().mockResolvedValue([{ id: 1, name: 'A', email: 'a@x.com' }]),
+  findMany: jest.fn().mockResolvedValue([{ id: '550e8400-e29b-41d4-a716-446655440000', name: 'A', email: 'a@x.com', role: 'admin' }]),
   count: jest.fn().mockResolvedValue(1),
-  findById: jest.fn().mockResolvedValue({ id: 1, name: 'A', email: 'a@x.com' }),
-  create: jest.fn().mockResolvedValue({ id: 1, name: 'A', email: 'a@x.com' }),
+  findById: jest.fn().mockResolvedValue({ id: '550e8400-e29b-41d4-a716-446655440000', name: 'A', email: 'a@x.com', role: 'admin' }),
+  create: jest.fn().mockResolvedValue({ id: '550e8400-e29b-41d4-a716-446655440000', name: 'A', email: 'a@x.com', role: 'admin' }),
 }));
 // Mock auth guard: 401 tanpa header (seperti aslinya), pass-through bila ada header.
 jest.mock('../src/common/middlewares/auth', () => (req, res, next) => {
@@ -10,7 +10,7 @@ jest.mock('../src/common/middlewares/auth', () => (req, res, next) => {
     const ApiError = require('../src/common/utils/ApiError');
     return next(new ApiError(401, 'Missing or invalid token'));
   }
-  req.user = { id: 1, email: 'a@x.com' };
+  req.user = { id: '550e8400-e29b-41d4-a716-446655440000', email: 'a@x.com' };
   return next();
 });
 const request = require('supertest');

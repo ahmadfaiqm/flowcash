@@ -9,14 +9,14 @@ async function list(query) {
   return { items, meta: buildMeta(page, limit, total) };
 }
 async function getById(id) {
-  const user = await repo.findById(Number(id));
+  const user = await repo.findById(String(id));
   if (!user) throw new ApiError(404, 'User not found');
   return user;
 }
 async function create(body) {
-  const password = await bcrypt.hash(body.password, 10);
+  const passwordHash = await bcrypt.hash(body.password, 10);
   try {
-    return await repo.create({ name: body.name, email: body.email, password });
+    return await repo.create({ name: body.name, email: body.email, passwordHash, role: body.role });
   } catch (e) {
     if (e.code === 'P2002') throw new ApiError(409, 'Email already exists');
     throw e;

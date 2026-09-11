@@ -20,14 +20,18 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
+//router
+const usersRouter = require('./modules/users/users.routes');
+const authRouter = require('./modules/auth/auth.routes');
+
 app.get('/', (req, res) => {
   res.json({ status: 'success', message: 'Welcome to my awsome project REST API', docs: 'https://docs.example.com', author: 'programmer magang' });
 });
+
 app.use('/api/v1/health', healthRouter);
-const usersRouter = require('./modules/users/users.routes');
 app.use('/api/v1/users', usersRouter);
-const authRouter = require('./modules/auth/auth.routes');
 app.use('/api/v1/auth', authRouter);
+
 app.use(notFound);
 app.use(errorHandler);
 
